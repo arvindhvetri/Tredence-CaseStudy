@@ -1,20 +1,23 @@
-# Use an official Node.js runtime as a parent image
-FROM node:20-alpine
-
-# Set the working directory in the container
+# Stage 1: Build the application
+FROM node:20-alpine AS build
 WORKDIR /app
 
-# Copy package.json and package-lock.json first to leverage Docker cache
+# Install dependencies
 COPY package*.json ./
-
-# Install project dependencies
 RUN npm install
 
-# Copy the rest of the application code
+# Copy source and build the static files
 COPY . .
+RUN npm run build
 
-# Expose the port that Vite runs on
-EXPOSE 5173
+# Stage 2: Serve the application with Nginx
+FROM nginx:stable-alpine
 
-# Start the Vite development server
-CMD ["npm", "run", "dev"]
+# Copy the build output from the first stage to Nginx's public folder
+# Note: Vite defaults to the 'dist' folder. If your build folder is 'build', change /dist to /build
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Expose port 80 (Nginx default)
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

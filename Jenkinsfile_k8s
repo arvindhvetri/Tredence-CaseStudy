@@ -23,8 +23,8 @@ pipeline {
                     echo "📦 Building Backend Image..."
                     sudo docker build -t $BACKEND_IMAGE ./backend
         
-                    echo "📦 Building Frontend Image..."
-                    sudo docker build -t $FRONTEND_IMAGE ./frontend
+                    echo "📦 Building Frontend Image (Production Mode)..."
+            sudo docker build --no-cache -t $FRONTEND_IMAGE ./frontend
                 '''
             }
         }
