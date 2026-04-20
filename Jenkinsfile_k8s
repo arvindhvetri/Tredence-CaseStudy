@@ -7,7 +7,7 @@ pipeline {
         FRONTEND_IMAGE = 'arvindh01/hr-frontend:latest'
         
         // AWS EC2 Public IPs (Adjust according to your cluster!)
-        K8S_MASTER_IP = '54.167.249.42' 
+        K8S_MASTER_IP = '54.198.233.0' 
     }
 
     stages {
@@ -24,7 +24,7 @@ pipeline {
                     sudo docker build -t $BACKEND_IMAGE ./backend
         
                     echo "📦 Building Frontend Image (Production Mode)..."
-            sudo docker build --no-cache -t $FRONTEND_IMAGE ./frontend
+                    sudo docker build --no-cache --build-arg VITE_API_URL="http://${K8S_MASTER_IP}:30080" -t $FRONTEND_IMAGE ./frontend
                 '''
             }
         }
