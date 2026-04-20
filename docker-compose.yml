@@ -44,7 +44,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000    # Use user EC2 PUBLIC ADDRESS eg: <http://3.90.21.171:800>
+      - VITE_API_URL=http://3.90.21.171:8000    # Use user EC2 PUBLIC ADDRESS eg: <http://3.90.21.171:8000>
     depends_on:
       - backend
 
