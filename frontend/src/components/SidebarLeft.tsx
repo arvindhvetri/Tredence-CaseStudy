@@ -8,7 +8,7 @@ export const SidebarLeft = () => {
         <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold">
           HR
         </div>
-        <span className="font-bold text-lg text-slate-800">Tredence Designer</span>
+        <span className="font-bold text-lg text-slate-800">FlowHR Designer</span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4">
