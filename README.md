@@ -1,105 +1,113 @@
-# HR Workflow Designer Module
+# 🚀 FlowHR Designer - Full-Stack Enterprise Kubernetes Platform
 
-## 📌 Project Overview
-The **HR Workflow Designer** is a dynamic, full-stack application tailored for HR administrators to visually construct, configure, and simulate complex internal workflows (e.g., onboarding, leave approvals, document verification). Built as a "zero-to-one" modular system, the application heavily utilizes **React and React Flow** for its interactive canvas. To ensure scalability and robust cloud-native delivery, the entire application is containerized using **Docker** and orchestrated via **Kubernetes**.
+Welcome to the definitive **FlowHR Designer** documentation. This file serves as the ultimate "Source of Truth" for the entire project. It documents the architecture, networking, infrastructure, CI/CD methodology, and granular container port mappings.
 
-## 🚀 Key Features
-- **Interactive Drag-and-Drop Canvas:** Seamlessly build workflows using React Flow. Includes custom nodes tailored for HR: `Start Node`, `Task Node`, `Approval Node`, `Automated Step Node`, and `End Node`.
-- **Dynamic Node Configuration:** Each node type has a contextual configuration panel with tailored form fields, type safety, and basic validation requirements.
-- **Mock API Service Layer:** A backend layer providing dynamic automated actions (`GET /automations`) and step-by-step execution simulation (`POST /simulate`).
-- **Workflow Sandbox & Validation:** A testing panel that validates graph integrity (e.g., cycles, missing connections), serializes the entire workflow, and simulates step-by-step execution.
-- **Cloud-Native Deployment:** Fully dockerized application images with a provided Kubernetes deployment strategy, ensuring high availability and easy scaling.
+This project is an end-to-end, locally hosted, cloud-native HR workflow automation platform developed specifically as a Full Stack Engineering Case Study submission.
 
-## 🏗️ Architecture & Tech Stack
-- **Frontend:** React (Vite/Next.js preferred), TypeScript, React Flow, Tailwind CSS
-- **Backend / API Mock:** Python with FastAPI
-- **Containerization:** Docker, Docker Compose
-- **Orchestration:** Kubernetes (Bare-Metal Clusters, NodePorts)
-- **Infrastructure:** AWS (3x EC2 Instances)
-- **CI/CD:** Jenkins (Pipeline as Code)
-- **Observability:** Prometheus, Loki & Grafana (PLG Stack)
-- **Code Quality:** ESLint, Prettier, strict TypeScript typing
+---
 
-## 📂 Architecture & Folder Structure
-```text
-.
-├── frontend/                 # React frontend application
-│   ├── public/               # Static assets
-│   ├── src/
-│   │   ├── components/       # Reusable UI components
-│   │   ├── nodes/            # Custom React Flow node components
-│   │   ├── forms/            # Dynamic configuration panels for nodes
-│   │   ├── hooks/            # Custom React hooks
-│   │   ├── api/              # API interaction layer
-│   │   ├── types/            # TypeScript interfaces
-│   │   └── App.tsx           # Main application canvas and layout
-│   ├── Dockerfile
-│   └── package.json
-├── backend/                  # API Layer (Mock data & Simulation)
-│   ├── app/
-│   │   ├── routers/          # API Endpoints (/automations, /simulate)
-│   │   ├── services/         # Workflow simulation logic
-│   │   └── main.py           # FastAPI app entry point
-│   ├── Dockerfile
-│   └── requirements.txt
-├── k8s/                      # Kubernetes deployment manifests
-│   ├── frontend-deployment.yaml
-│   ├── backend-deployment.yaml
-│   ├── postgres.yaml
-│   ├── prometheus.yaml       # Metrics gathering
-│   ├── loki.yaml             # Log aggregation
-│   ├── grafana.yaml          # Metrics & log visualization dashboard
-│   ├── services.yaml
-│   └── ingress.yaml
-├── docker-compose.yml        # Local orchestrated development
-├── Jenkinsfile               # Automation pipeline config
-└── README.md
+## 🎯 The Case Study: Objectives vs. Execution
+
+The goal of the assignment was to build an interactive, modular HR Workflow UI interacting with a robust backend API. Below is an exact mapping of the requirements and how this architecture aggressively over-delivered on those expectations:
+
+| Case Study Requirement | How We Achieved It |
+| :--- | :--- |
+| **Interactive Flow UI** | Leveraged the powerful `@xyflow/react` (React Flow) library to build an infinitely scrollable, zoomable HTML5 Canvas natively supporting drag-and-drop nodes. |
+| **Dynamic Configuration** | Built `SidebarRight.tsx`, a state-reactive configuration panel that instantly parses the schema of the specific node selected and dynamically renders corresponding input fields. |
+| **Backend Integration & Simulation** | Developed a highly performant **Python FastAPI** layer that parses complex nested YAML/JSON Node payloads and iteratively simulates latency to validate logic arrays, returning live streaming logs. |
+| **Data Persistence (Nice to have)** | Implemented full persistence utilizing SQLAlchemy ORM mapping over a **PostgreSQL** relational database. Workflows are physically saved and recallable across browser reloads. |
+| **Dockerization & CI/CD (Bonus)** | Engineered absolute zero-touch CI/CD pipelines natively in Groovy (`Jenkinsfile_k8s`). Code commits instantly trigger Multi-Stage Alpine Docker builds deployed over Jenkins to Kubernetes. |
+| **Observability (Beyond Bonus)** | Deployed the absolute industry standard stack: **Prometheus** (Metrics), **Loki/Promtail** (Log streaming directly out of EC2 containerd paths), and **Grafana** (Visualization). |
+
+---
+
+## 🏛️ 1. Master System Architecture
+
+The project shifts entirely away from monolithic development into a **Microservices Kubernetes Architecture**.
+
+### 1a. Application Tier
+*   **The Frontend (Client):** Developed in React 18 using TypeScript and Vite. It is served statically in production using an ultra-lightweight **Nginx** Alpine container.
+*   **The Backend (API):** A high-throughput Python REST API built using **FastAPI** and SQLAlchemy. 
+
+### 1b. Infrastructure & Database Tier
+*   **The Database:** Utilizes `postgres:15-alpine`. To prevent data-loss, PostgreSQL is deployed securely using a **StatefulSet** coupled with an absolute `PersistentVolume` (PV) and `PersistentVolumeClaim` (PVC) bound locally to `/var/lib/tredence/postgres-data`.
+*   **The Platform:** A custom-built, self-hosted multi-node **Kubernetes** cluster running directly on AWS EC2 worker nodes.
+
+### 1c. Observability & Logging Stack
+*   **Prometheus:** A massive Time-Series Database (TSDB) that actively Scrapes K8s API states, discovers application endpoints, and ingests metrics every 15 seconds.
+*   **Loki & Promtail:** The definitive log aggregation stack. `Promtail` runs as a DaemonSet to scrape raw node container logs directly out of `/var/log/pods/` and pipelines them internally to Loki.
+*   **Grafana:** The single pane of glass visualization tool that queries both Loki and Prometheus simultaneously.
+
+---
+
+## 🔌 2. The Comprehensive Networking & Port Matrix
+
+Below is the literal exact mapping of every minute port utilized natively across the K8s internal Docker networks.
+
+### Application Ports
+| Service / Pod | Internal Container Port | K8s Target Port | K8s Service Type | External / EC2 Port (NodePort) | Purpose |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Backend API** | `8000` | `8000` | **NodePort** | **`30080`** | Receives synchronous fetch API requests directly from the user's web browser (`/api/workflows`) over HTTP. |
+| **Frontend UI** | `80` (Nginx) | `80` | **NodePort** | **Dynamic** *(e.g. 31442)*| Serves minified JS/HTML files statically to the end-user. Auto-assigned a NodePort between 30000-32767. |
+| **PostgreSQL** | `5432` | `5432` | **ClusterIP** (None) | **Closed** | Explicitly locked down Headless Service. Only the internal K8s Backend Pod can resolve or connect to this via internal K8s DNS. |
+
+### Observability Ports
+| Service / Pod | Internal Container Port | K8s Target Port | K8s Service Type | External Level / EC2 Port | Purpose |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Grafana** | `3000` | `3000` | **NodePort** | **Dynamic** | The public dashboard UI. Exposed publicly via AWS. |
+| **Prometheus** | `9090` | `9090` | **NodePort** | **Dynamic** | Publicly accessible TSDB API Interface for debugging raw PromQL. |
+| **Loki** | `3100` | `3100` | **ClusterIP** | **Closed** | Internal log-ingestion endpoint. Only Promtail and Grafana can connect to this over `loki-service`. |
+
+### AWS Security Group Requirements (EC2 CNI Inter-Node Traffic)
+For Kube-Proxy to appropriately forward a request from a Worker node across the Container Native Interface (CNI), the AWS Security groups MUST allow internal instances to route traffic over **ALL UDP/TCP Ports**. Strict firewalls will drop encapsulation packets silently causing a `Timeout`.
+
+---
+
+## 🤖 3. The Jenkins CI/CD Lifecycle Pipeline
+
+The orchestrator connecting Github to Production is a single `Jenkinsfile_k8s` Groovy script that executes upon every Github commit.
+
+1.  **Clone:** Jenkins pulls down the exact latest Head of the `main` branch.
+2.  **Build Stage:** Initiates `sudo docker build` commands on the worker. 
+    *   *The Crucial Fix:* Jenkins dynamically utilizes `--build-arg VITE_API_URL` to securely interpolate the AWS EC2 Master IP address directly into the Alpine Node static build so no proxy routing logic is required natively. 
+3.  **Push Stage:** Authenticates dynamically using Jenkins Credentials (`dockerhub-creds`) to push the newest images into Docker Hub.
+4.  **Tag Injection:** Executes GNU `sed` to rewrite the physical Docker tag placeholders within `k8s/frontend.yaml` prior to applying.
+5.  **Provision Kubernetes:** Sequentially runs `kubectl apply -f` across Namespaces, Databases, Apps, and Monitoring stacks.
+6.  **Rollout Restart (Zero-Downtime):** Physically executes `kubectl rollout restart deployment/tredence-frontend` to force K8s to tear down replica sets gracefully and pull the freshly generated Docker Hub image in the background without causing an outage.
+
+---
+
+## 👨‍💻 4. Engineer's Troubleshooting Command Cheat Sheet
+
+Everything belongs to the isolated namespace `tredence`. These terminal commands are the lifeline to K8s administration. 
+
+### Statuses and Debugging
+```bash
+# Verify exactly which NodePorts got assigned to Grafana and Frontend UI
+kubectl get svc -n tredence
+
+# Check standard pod deployment statuses and CrashLoopBackOff Errors
+kubectl get pods -n tredence
+
+# Inspect why a single pod failed to initialize (ImagePullBackOff, Pending, Error)
+kubectl describe pod <THE-POD-NAME> -n tredence
 ```
 
-## ⚙️ Running Locally (Docker Compose)
-The easiest way to get the full stack up and running locally is via Docker Compose.
+### Viewing Logs Directly via CLI (Bypassing Loki)
+```bash
+# Stream the raw stdout output live from your backend FastAPI pod processing requests
+kubectl logs -f <BACKEND-POD-NAME> -n tredence
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repo-url>
-   cd HR-Workflow-Designer
-   ```
+### Inspecting PostgreSQL Persistence
+To mathematically prove the UI accurately saved the data via standard internal routing through K8s services:
+```bash
+# 1. Access the completely isolated Postgres container natively:
+kubectl exec -it tredence-postgres-0 -n tredence -- psql -U hr_user -d hr_workflow_db
 
-2. **Build and spin up the containers:**
-   ```bash
-   docker-compose up --build
-   ```
+# 2. Extract Data (Once the connection establishes -> hr_workflow_db=>)
+SELECT id, name FROM workflows;
 
-3. **Access the application:**
-   - Frontend: `http://localhost:3000` (or `5173` if Vite)
-   - API Layer: `http://localhost:8000/api` (Swagger UI at `/docs`)
-
-## 🛳️ Infrastructure & Kubernetes Deployment
-The architecture is designed to function across **3 AWS EC2 Instances**:
-1. **Jenkins Master Node:** Orchestrates the pipelines.
-2. **Jenkins Worker & K8s Master Node:** Builds Docker images, pushes to registry, and manages the Kubernetes cluster state.
-3. **K8s Worker Node:** Executes the application and observability pods.
-
-To deploy the stack to the Kubernetes master node:
-1. **Apply the Kubernetes manifests:**
-   ```bash
-   kubectl apply -f k8s/
-   ```
-2. **Verify Deployments and Services:**
-   ```bash
-   kubectl get pods -wide
-   kubectl get svc
-   ```
-*Note: Applications are securely exposed to the public internet via K8s `NodePort` mapping.*
-
-## 🧠 Design Decisions & Assumptions
-- **Separation of Concerns:** Opted for a distinct separation between canvas logic, node rendering, and the API interaction layer to ensure the codebase remains highly maintainable and scalable.
-- **State Management:** Used React state / context or lightweight libraries (e.g., Zustand) for predictable and reliable workflow parsing. Forms strictly use controlled components.
-- **Mock API Server:** Although persistence is not strictly required, a modular FastAPI mock server in Python was chosen to align with the core backend skills requested and to simulate realistic API latency and real-world backend responses.
-- **Type Safety:** The entire workflow logic (edges, node types, attributes) relies on TypeScript interfaces to catch configuration discrepancies during validation.
-
-## 🔮 Future Enhancements
-- Export/Import workflow configuration as raw JSON.
-- Implement auto-layout for complex nodes.
-- Introduce persistent backend storage using PostgreSQL.
-- Add advanced CI/CD pipelines via GitHub Actions.
+# To cleanly terminate the SQL session
+\q
+```
