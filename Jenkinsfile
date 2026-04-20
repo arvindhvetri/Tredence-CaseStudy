@@ -7,7 +7,7 @@ pipeline {
         FRONTEND_IMAGE = 'arvindh01/hr-frontend:latest'
         
         // Your AWS EC2 Public IP
-        WORKER_NODE_IP = '3.90.21.171' 
+        WORKER_NODE_IP = '54.167.249.42' 
     }
 
     stages {
