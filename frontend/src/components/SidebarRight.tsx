@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, Play, ChevronRight, Trash2 } from 'lucide-react';
+import { Settings, Play, ChevronRight, Trash2, Save } from 'lucide-react';
 
 export const SidebarRight = ({ 
   selectedNode, 
@@ -7,7 +7,9 @@ export const SidebarRight = ({
   onDeleteNode,
   onSimulate, 
   simulationLogs, 
-  isSimulating 
+  isSimulating,
+  onSave,
+  isSaving
 }: any) => {
   const [activeTab, setActiveTab] = useState<'properties' | 'sandbox'>('properties');
 
@@ -201,14 +203,25 @@ export const SidebarRight = ({
           NodePropertiesForm()
         ) : (
           <div className="space-y-4 flex flex-col h-full">
-            <button 
-              onClick={onSimulate}
-              disabled={isSimulating}
-              className={`w-full flex justify-center items-center gap-2 py-2.5 rounded-lg text-white font-medium transition-all ${isSimulating ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-sm'}`}
-            >
-              <Play size={16} />
-              {isSimulating ? 'Simulating...' : 'Simulate Workflow'}
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button 
+                onClick={onSave}
+                disabled={isSaving}
+                className={`flex justify-center items-center gap-2 py-2.5 rounded-lg text-white font-medium transition-all ${isSaving ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 shadow-sm'}`}
+              >
+                <Save size={16} />
+                {isSaving ? 'Saving...' : 'Save Workflow'}
+              </button>
+
+              <button 
+                onClick={onSimulate}
+                disabled={isSimulating}
+                className={`flex justify-center items-center gap-2 py-2.5 rounded-lg text-white font-medium transition-all ${isSimulating ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-sm'}`}
+              >
+                <Play size={16} />
+                {isSimulating ? 'Simulating...' : 'Simulate'}
+              </button>
+            </div>
 
             <div className="flex-1 bg-slate-900 rounded-lg p-3 overflow-y-auto font-mono text-xs text-green-400">
               {simulationLogs?.length === 0 ? (

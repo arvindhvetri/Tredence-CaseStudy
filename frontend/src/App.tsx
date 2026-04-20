@@ -43,6 +43,7 @@ function DesignerFlow() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [simulationLogs, setSimulationLogs] = useState<string[]>([]);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
@@ -50,16 +51,16 @@ function DesignerFlow() {
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [setNodes]
   );
-  
+
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     [setEdges]
   );
-  
+
   const onConnect = useCallback(
     (connection: Connection) => setEdges((eds) => addEdge({
-      ...connection, 
-      type: 'smoothstep', 
+      ...connection,
+      type: 'smoothstep',
       animated: true,
       style: { stroke: '#3b82f6', strokeWidth: 2 }
     }, eds)),
@@ -84,7 +85,7 @@ function DesignerFlow() {
         x: event.clientX,
         y: event.clientY,
       });
-      
+
       const newNode: Node = {
         id: getId(),
         type,
@@ -132,17 +133,15 @@ function DesignerFlow() {
   const handleSimulate = async () => {
     setIsSimulating(true);
     setSimulationLogs(['Sending workflow to simulation engine...']);
-    
+
     try {
       const payload = {
         name: "Test Flow",
         nodes: nodes.map(n => ({ id: n.id, type: n.type, data: n.data })),
         edges: edges.map(e => ({ source: e.source, target: e.target }))
       };
-      
       // It will use the EC2 IP from docker-compose, or fallback to localhost if you run it locally
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      
       const response = await fetch(`${API_BASE_URL}/api/simulate`, {
         method: 'POST',
         headers: {
@@ -150,19 +149,50 @@ function DesignerFlow() {
         },
         body: JSON.stringify(payload)
       });
-      
+
       const data = await response.json();
-      
+
       if (data.logs) {
         setSimulationLogs(prev => [...prev, ...data.logs]);
       } else {
         setSimulationLogs(prev => [...prev, 'Simulation completed with unexpected response.']);
       }
-      
+
     } catch (error: any) {
       setSimulationLogs(prev => [...prev, `Simulation failed: ${error.message}`]);
     } finally {
       setIsSimulating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        name: `Workflow ${new Date().toLocaleString()}`,
+        nodes: nodes.map(n => ({ id: n.id, type: n.type, data: n.data })),
+        edges: edges.map(e => ({ source: e.source, target: e.target }))
+      };
+      
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+      const response = await fetch(`${API_BASE_URL}/api/workflows`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        alert("Workflow saved successfully!");
+      } else {
+        alert("Failed to save workflow.");
+      }
+    } catch (error: any) {
+      alert(`Error saving workflow: ${error.message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -171,7 +201,7 @@ function DesignerFlow() {
   return (
     <div className="w-screen h-screen flex overflow-hidden bg-slate-50 font-sans">
       <SidebarLeft />
-      
+
       <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
         <ReactFlow
           nodes={nodes}
@@ -186,10 +216,10 @@ function DesignerFlow() {
           onEdgeClick={onEdgeClick}
           onPaneClick={onPaneClick}
           connectOnClick={true}
-          defaultEdgeOptions={{ 
-            type: 'smoothstep', 
+          defaultEdgeOptions={{
+            type: 'smoothstep',
             animated: true,
-            style: { stroke: '#3b82f6', strokeWidth: 2 } 
+            style: { stroke: '#3b82f6', strokeWidth: 2 }
           }}
           fitView
           fitViewOptions={{ padding: 0.2 }}
@@ -200,13 +230,15 @@ function DesignerFlow() {
         </ReactFlow>
       </div>
 
-      <SidebarRight 
-        selectedNode={selectedNode} 
+      <SidebarRight
+        selectedNode={selectedNode}
         onUpdateNode={onUpdateNode}
         onDeleteNode={onDeleteNode}
         onSimulate={handleSimulate}
         simulationLogs={simulationLogs}
         isSimulating={isSimulating}
+        onSave={handleSave}
+        isSaving={isSaving}
       />
     </div>
   );
