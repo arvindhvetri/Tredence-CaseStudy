@@ -29,7 +29,7 @@ metadata:
   name: frontend-service
   namespace: tredence
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: frontend
   ports:
