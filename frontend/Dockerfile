@@ -9,7 +9,7 @@ RUN npm install
 # Copy source and build the static files
 COPY . .
 ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
+RUN echo "VITE_API_URL=$VITE_API_URL" > .env
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
