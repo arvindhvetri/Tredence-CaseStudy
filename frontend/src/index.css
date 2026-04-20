@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+html, body, #root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+@theme {
+  --color-hr-primary: #3f51b5;
+  --color-hr-secondary: #ff4081;
+}
