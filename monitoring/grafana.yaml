@@ -28,7 +28,7 @@ metadata:
   name: grafana-service
   namespace: tredence
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: grafana
   ports:

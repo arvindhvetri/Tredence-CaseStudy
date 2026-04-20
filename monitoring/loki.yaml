@@ -79,9 +79,11 @@ spec:
       containers:
         - name: promtail
           image: grafana/promtail:2.8.2
+          securityContext:
+            runAsUser: 0
+            privileged: true
           args:
             - "-config.file=/etc/promtail/promtail.yaml"
-            - "-client.url=http://loki-service.tredence.svc.cluster.local:3100/loki/api/v1/push"
           volumeMounts:
             - name: config
               mountPath: /etc/promtail
