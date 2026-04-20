@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'Taskify-Agent' }
+    agent { label 'Jen-Agent' }
 
     environment {
         // Your Docker Hub Repositories
