@@ -54,13 +54,20 @@ data:
           labels:
             job: varlogs
             __path__: /var/log/*log
-      - job_name: containers
+      - job_name: kubernetes_pods
         static_configs:
         - targets:
             - localhost
           labels:
-            job: containerlogs
-            __path__: /var/lib/docker/containers/*/*log
+            job: kubernetes_pods
+            __path__: /var/log/pods/*/*/*.log
+      - job_name: kubernetes_containers
+        static_configs:
+        - targets:
+            - localhost
+          labels:
+            job: kubernetes_containers
+            __path__: /var/log/containers/*.log
 ---
 apiVersion: apps/v1
 kind: DaemonSet
