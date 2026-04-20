@@ -40,12 +40,11 @@ services:
     container_name: hr_designer_frontend
     ports:
       - "5173:5173"
-      - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://localhost:8000    # Use user EC2 PUBLIC ADDRESS eg: <http://3.90.21.171:800>
     depends_on:
       - backend
 
