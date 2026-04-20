@@ -1,79 +1,89 @@
 pipeline {
-    agent any
+    agent { label 'Taskify-Agent' }
 
     environment {
-        DOCKER_REGISTRY = "YOUR_DOCKERHUB_USERNAME" // Replace with ECR URL if using AWS ECR
-        APP_NAME = "tredence-hr-designer"
-        TAG = "latest"
+        // Your Docker Hub Repositories
+        BACKEND_IMAGE  = 'arvindh01/hr-backend:latest'
+        FRONTEND_IMAGE = 'arvindh01/hr-frontend:latest'
+        
+        // Your AWS EC2 Public IP
+        WORKER_NODE_IP = '3.90.21.171' 
     }
 
     stages {
-        stage('Checkout') {
+        stage('Clone Code from GitHub') {
             steps {
-                git branch: 'main', url: 'YOUR_GITHUB_REPOSITORY_URL'
+                // Clones your specific Tredence project
+                git branch: 'main', url: 'https://github.com/arvindhvetri/Tredence-CaseStudy.git'
             }
         }
 
-        stage('Backend: Test & Lint') {
+        stage('Cleanup Environment') {
             steps {
-                dir('backend') {
-                    sh 'pip install -r requirements.txt'
-                    // Add standard tests here if they exist
-                    // sh 'pytest'
-                }
+                sh '''
+                    echo "🧹 Stopping current stack..."
+                    docker-compose down || true
+
+                    echo "🗑️ Removing old project images to save space..."
+                    docker rmi $BACKEND_IMAGE $FRONTEND_IMAGE || true
+                    
+                    echo "♻️ Cleaning up dangling (unused) images..."
+                    docker image prune -f
+                '''
             }
         }
-
-        stage('Frontend: Build') {
-            steps {
-                dir('frontend') {
-                    sh 'npm install'
-                    sh 'npm run build'
-                }
-            }
-        }
-
+        
         stage('Build Docker Images') {
             steps {
-                script {
-                    dockerBackendImage = docker.build("${DOCKER_REGISTRY}/${APP_NAME}-backend:${TAG}", "./backend")
-                    dockerFrontendImage = docker.build("${DOCKER_REGISTRY}/${APP_NAME}-frontend:${TAG}", "./frontend")
+                sh '''
+                    echo "📦 Building Backend Image..."
+                    docker build -t $BACKEND_IMAGE ./backend
+        
+                    echo "📦 Building Frontend Image..."
+                    docker build -t $FRONTEND_IMAGE ./frontend
+                '''
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                // Note: Ensure 'dockerhub-creds' exists in Jenkins -> Credentials
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds', 
+                    usernameVariable: 'DOCKERHUB_USER',
+                    passwordVariable: 'DOCKERHUB_PASS'
+                )]) {
+                    sh '''
+                        echo "🔐 Logging into Docker Hub..."
+                        echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                        
+                        echo "🚀 Pushing Backend..."
+                        docker push $BACKEND_IMAGE
+                        
+                        echo "🚀 Pushing Frontend..."
+                        docker push $FRONTEND_IMAGE
+                    '''
                 }
             }
         }
-
-        stage('Push Docker Images') {
+        
+        stage('Deploy Application') {
             steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') { // Use jenkins credential manager
-                        dockerBackendImage.push()
-                        dockerFrontendImage.push()
-                    }
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                // Requires the Jenkins K8s plugin and cluster kubeconfig correctly configured
-                sh 'kubectl apply -f k8s/namespace.yaml'
-                sh 'kubectl apply -f k8s/postgres.yaml'
-                sh 'kubectl apply -f k8s/backend.yaml'
-                sh 'kubectl apply -f k8s/frontend.yaml'
-                
-                // Trigger rolling restart of deployments
-                sh 'kubectl rollout restart deployment/tredence-backend -n tredence'
-                sh 'kubectl rollout restart deployment/tredence-frontend -n tredence'
+                sh '''
+                    echo "🚀 Starting containers with Docker Compose..."
+                    # This uses your docker-compose.yml file in the root directory
+                    docker-compose up -d
+                '''
             }
         }
     }
-
+    
     post {
         success {
-            echo "Successfully built and deployed Tredence HR Designer!"
+            echo "✅ Deployment Successful! Access at http://${WORKER_NODE_IP}:5173"
         }
         failure {
-            echo "Build failed. Inspect logs for details."
+            echo "❌ Pipeline Failed. Check the console output above."
         }
     }
 }
