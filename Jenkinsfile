@@ -6,48 +6,32 @@ pipeline {
         BACKEND_IMAGE  = 'arvindh01/hr-backend:latest'
         FRONTEND_IMAGE = 'arvindh01/hr-frontend:latest'
         
-        // Your AWS EC2 Public IP
-        WORKER_NODE_IP = '54.167.249.42' 
+        // AWS EC2 Public IPs (Adjust according to your cluster!)
+        K8S_MASTER_IP = '54.198.233.0' 
     }
 
     stages {
         stage('Clone Code from GitHub') {
             steps {
-                // Clones your specific Tredence project
                 git branch: 'main', url: 'https://github.com/arvindhvetri/Tredence-CaseStudy.git'
             }
         }
 
-        stage('Cleanup Environment') {
-            steps {
-                sh '''
-                    echo "🧹 Stopping current stack..."
-                    docker-compose down || true
-
-                    echo "🗑️ Removing old project images to save space..."
-                    docker rmi $BACKEND_IMAGE $FRONTEND_IMAGE || true
-                    
-                    echo "♻️ Cleaning up dangling (unused) images..."
-                    docker image prune -f
-                '''
-            }
-        }
-        
         stage('Build Docker Images') {
             steps {
                 sh '''
                     echo "📦 Building Backend Image..."
-                    docker build -t $BACKEND_IMAGE ./backend
+                    sudo docker build -t $BACKEND_IMAGE ./backend
         
-                    echo "📦 Building Frontend Image..."
-                    docker build -t $FRONTEND_IMAGE ./frontend
+                    echo "📦 Building Frontend Image (Production Mode)..."
+                    sudo docker build --no-cache --build-arg VITE_API_URL="http://${K8S_MASTER_IP}:30080" -t $FRONTEND_IMAGE ./frontend
                 '''
             }
         }
         
         stage('Push to Docker Hub') {
             steps {
-                // Note: Ensure 'dockerhub-creds' exists in Jenkins -> Credentials
+                // Ensure 'dockerhub-creds' exists in your Jenkins -> Manage Credentials
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds', 
                     usernameVariable: 'DOCKERHUB_USER',
@@ -55,24 +39,68 @@ pipeline {
                 )]) {
                     sh '''
                         echo "🔐 Logging into Docker Hub..."
-                        echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                        echo "$DOCKERHUB_PASS" | sudo docker login -u "$DOCKERHUB_USER" --password-stdin
                         
-                        echo "🚀 Pushing Backend..."
-                        docker push $BACKEND_IMAGE
+                        echo "🚀 Pushing Backend Image..."
+                        sudo docker push $BACKEND_IMAGE
                         
-                        echo "🚀 Pushing Frontend..."
-                        docker push $FRONTEND_IMAGE
+                        echo "🚀 Pushing Frontend Image..."
+                        sudo docker push $FRONTEND_IMAGE
                     '''
                 }
             }
         }
+
+        stage('Inject Dynamic Image Tags') {
+            steps {
+                // This ensures the generic templates use YOUR specific dockerhub images dynamically
+                sh '''
+                    echo "🔧 Updating Kubernetes manifests with correct image paths..."
+                    sed -i "s|YOUR_DOCKERHUB_USERNAME/tredence-hr-designer-backend:latest|${BACKEND_IMAGE}|g" k8s/backend.yaml
+                    sed -i "s|YOUR_DOCKERHUB_USERNAME/tredence-hr-designer-frontend:latest|${FRONTEND_IMAGE}|g" k8s/frontend.yaml
+                '''
+            }
+        }
         
-        stage('Deploy Application') {
+        stage('Deploy to Kubernetes (App)') {
             steps {
                 sh '''
-                    echo "🚀 Starting containers with Docker Compose..."
-                    # This uses your docker-compose.yml file in the root directory
-                    docker-compose up -d
+                    echo "⛵ Deploying the Namespace first..."
+                    kubectl apply -f k8s/namespace.yaml
+                    
+                    echo "⛵ Deploying Postgres Database..."
+                    kubectl apply -f k8s/postgres.yaml
+
+                    echo "⛵ Deploying Backend Service & Deployment..."
+                    kubectl apply -f k8s/backend.yaml
+
+                    echo "⛵ Deploying Frontend Service & Deployment..."
+                    kubectl apply -f k8s/frontend.yaml
+                '''
+            }
+        }
+
+        stage('Deploy Observability Stack (Monitoring)') {
+            steps {
+                sh '''
+                    echo "📊 Deploying Prometheus..."
+                    kubectl apply -f monitoring/prometheus.yaml
+
+                    echo "📊 Deploying Loki..."
+                    kubectl apply -f monitoring/loki.yaml
+
+                    echo "📊 Deploying Grafana..."
+                    kubectl apply -f monitoring/grafana.yaml
+                '''
+            }
+        }
+
+        stage('Rollout Restart (Zero-Downtime Update)') {
+            steps {
+                sh '''
+                    echo "🔄 Triggering rollout restart to pull the freshly pushed images..."
+                    kubectl rollout restart deployment/tredence-backend -n tredence
+                    kubectl rollout restart deployment/tredence-frontend -n tredence
                 '''
             }
         }
@@ -80,10 +108,11 @@ pipeline {
     
     post {
         success {
-            echo "✅ Deployment Successful! Access at http://${WORKER_NODE_IP}:5173"
+            echo "✅ K8S Deployment Successful! App is running on your Kubernetes Cluster Nodes."
+            echo "📊 To access Grafana (if exposed via NodePort), check your cluster services: kubectl get svc -n tredence"
         }
         failure {
-            echo "❌ Pipeline Failed. Check the console output above."
+            echo "❌ K8S Pipeline Failed. Check the console output above."
         }
     }
 }

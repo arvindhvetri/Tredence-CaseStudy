@@ -140,8 +140,8 @@ function DesignerFlow() {
         nodes: nodes.map(n => ({ id: n.id, type: n.type, data: n.data })),
         edges: edges.map(e => ({ source: e.source, target: e.target }))
       };
-      // It will use the EC2 IP from docker-compose, or fallback to localhost if you run it locally
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      // Use the injected VITE API URL, or intelligently fallback to the host's IP serving this site + Backend Port 30080
+      const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:30080`;
       const response = await fetch(`${API_BASE_URL}/api/simulate`, {
         method: 'POST',
         headers: {
@@ -174,7 +174,8 @@ function DesignerFlow() {
         edges: edges.map(e => ({ source: e.source, target: e.target }))
       };
       
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      // Use the injected VITE API URL, or intelligently fallback to the host's IP serving this site + Backend Port 30080
+      const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:30080`;
 
       const response = await fetch(`${API_BASE_URL}/api/workflows`, {
         method: 'POST',
