@@ -52,7 +52,7 @@ metadata:
   name: prometheus-service
   namespace: tredence
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: prometheus
   ports:
