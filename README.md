@@ -111,3 +111,15 @@ SELECT id, name FROM workflows;
 # To cleanly terminate the SQL session
 \q
 ```
+---
+
+## 📸 5. Application ScreenShots
+<img width="1550" height="827" alt="Out1" src="https://github.com/user-attachments/assets/5522fe7e-3d51-45c1-835e-023680124f59" />
+<img width="1340" height="526" alt="Out2" src="https://github.com/user-attachments/assets/3dcc37ea-ba78-43f9-ac55-a12596d349c1" />
+<img width="1337" height="704" alt="Out3" src="https://github.com/user-attachments/assets/586cbdb1-2bc9-4866-941b-ce7560e458b6" />
+<img width="1110" height="592" alt="Out4" src="https://github.com/user-attachments/assets/44dd0ed8-304b-4acd-a06e-a61beb9daf73" />
+
+---
+## 📄 6. Output Document
+
+[Tredence-CaseStudy.pdf](https://github.com/user-attachments/files/26914590/Tredence-CaseStudy.pdf)
